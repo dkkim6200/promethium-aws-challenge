@@ -404,7 +404,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Join ['', [!Ref "AWS::StackName", "-PublicSubnet" ]]
+          Value: !Join ['', [!Ref "AWS::StackName", "-PrivateSubnet" ]]
 
   # Elastic IP for the NAT gateway
   NatGatewayEIP:
@@ -483,8 +483,8 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       InstanceType: !Ref PrivateInstanceType
-      SecurityGroups:
-        - !Ref SSHOnlyIngressSecurityGroup
+      SecurityGroupIds:
+        - !GetAtt SSHOnlyIngressSecurityGroup.GroupId
       KeyName: !Ref KeyName
       ImageId: !FindInMap 
         - AWSRegionArch2AMI
@@ -493,3 +493,4 @@ Resources:
           - AWSInstanceType2Arch
           - !Ref PrivateInstanceType
           - Arch
+      SubnetId: !Ref PrivateSubnet
