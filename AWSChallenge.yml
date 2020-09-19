@@ -77,12 +77,22 @@ Parameters:
       - cr1.8xlarge
       - cc2.8xlarge
       - cg1.4xlarge
-    ConstraintDescription: must be a valid EC2 instance type.
+    ConstraintDescription: Must be a valid EC2 instance type.
 
   KeyName:
     Description: Please enter the name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: 'AWS::EC2::KeyPair::KeyName'
-    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+
+  LambdaS3Bucket:
+    Description: Please enter the bucket name with lambda function code for SSH status check
+    Type: String
+    ConstraintDescription: Must be an S3 bucket.
+
+  LambdaCodeS3Key:
+    Description: Please enter the key name with lambda function code for SSH status check
+    Type: String
+    Default: check_ssh_status
 
 # Mappings from https://s3.us-west-2.amazonaws.com/cloudformation-templates-us-west-2/EC2InstanceWithSecurityGroupSample.template
 Mappings:
@@ -494,3 +504,78 @@ Resources:
           - !Ref PrivateInstanceType
           - Arch
       SubnetId: !Ref PrivateSubnet
+
+  EC2StatusCheckRole: 
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+                - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AmazonEC2ReadOnlyAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: ec2:Describe*
+                Resource: "*"
+              - Effect: Allow
+                Action: elasticloadbalancing:Describe*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudwatch:ListMetrics
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:Describe*
+                Resource: "*"
+              - Effect: Allow
+                Action: autoscaling:Describe*
+                Resource: "*"
+        - PolicyName: AWSLambdaBasicExecutionRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  CheckSSHStatusLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: check_ssh_status
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt EC2StatusCheckRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaCodeS3Key
+      Runtime: python3.8
+      Timeout: 10
+
+  CheckSSHStatusSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: CheckSSHStatusSchedule
+      Description: Triggers the check for reachability of SSH port on EC2 instances
+      ScheduleExpression: "rate(1 minute)"
+      Targets:
+        - Id: CheckSSHStatusScheduleTarget
+          Arn: !GetAtt CheckSSHStatusLambda.Arn
+      State: ENABLED
+
+  CheckSSHStatusScheduleInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CheckSSHStatusLambda
+      Action: "lambda:InvokeFunction"
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CheckSSHStatusSchedule.Arn
