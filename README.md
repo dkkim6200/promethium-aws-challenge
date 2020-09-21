@@ -51,4 +51,4 @@ This project tackles Promethium's AWS Challenge. The project creates the followi
 
 ## Output Stack
 
-IMAGE
+![Image of output stack](https://github.com/dkkim6200/promethium-aws-challenge/raw/master/template_visualization.png)
