@@ -6,7 +6,7 @@ This project tackles Promethium's AWS Challenge. The project creates the followi
 * Private EC2 instance that only allows outbound access to the Internet.
     * No public IP.
     * Outsider can only respond to requests, and no access shall be allows to the EC2 instance in any other circumstance.
-    * Inbound access allowed within the same VPC.
+    * Inbound SSH access allowed within the same VPC.
 * Lambda function that periodically checks the status of port 22 for the EC2 instance created above.
 
 
