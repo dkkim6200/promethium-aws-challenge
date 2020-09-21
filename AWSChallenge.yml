@@ -263,7 +263,6 @@ Mappings:
       HVMG2: NOT_SUPPORTED
 
 Resources:
-  # First, a VPC:
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -281,6 +280,7 @@ Resources:
         - Key: Name
           Value: !Join ['', [!Ref "AWS::StackName", "-IGW" ]]
 
+  # Attach VPC -> InternetGateway
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
