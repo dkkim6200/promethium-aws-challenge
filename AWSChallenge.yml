@@ -441,6 +441,16 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
+        - PolicyName: EC2NetworkInterfaceAcess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AttachNetworkInterface
+                Resource: "*"
 
   CheckSSHStatusLambda:
     Type: AWS::Lambda::Function
@@ -457,6 +467,11 @@ Resources:
         Variables:
           INSTANCE_ID: !Ref EC2Instance
           VPC_CIDR: !Ref VpcCIDR
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt SSHOnlyIngressSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref PrivateSubnet
 
   CheckSSHStatusSchedule:
     Type: AWS::Events::Rule
